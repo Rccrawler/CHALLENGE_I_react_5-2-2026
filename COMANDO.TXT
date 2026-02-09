@@ -1,0 +1,344 @@
+ENTRAR EN AWS CREAR LA ESTRUCTURA DE CARPETAS
+psql --version
+añadirlo a las bariables de entorno: VARIABLES DE ENTORNO: C:\Program Files\PostgreSQL\18\bin
+
+se coje el:
+export RDSHOST="database-3.czzjxfomz8ht.us-east-1.rds.amazonaws.com" 
+psql "host=$RDSHOST port=5432 dbname=postgres user=postgres sslmode=verify-full sslrootcert=/certs/global-bundle.pem password=789456123"
+
+y el punto de conesion
+database-3.czzjxfomz8ht.us-east-1.rds.amazonaws.com
+
+
+
+export RDSHOST="database-3.czzjxfomz8ht.us-east-1.rds.amazonaws.com"
+export PGPASSWORD="789456123"
+
+psql -h $RDSHOST -p 5432 -U postgres -d postgres -w
+
+una bez conectado ponemos:
+
+\conninfo
+\l
+CREATE TABLE IF NOT EXISTS products (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  description TEXT,
+  price NUMERIC(10,2) NOT NULL,
+  stock INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+\d products
+
+INSERT INTO products (name, description, price, stock) VALUES
+('Seda Roll', 'Roll fusión con toque cítrico', 12.50, 20),
+('Olivo Bento', 'Bento mediterráneo con hummus y atún', 14.90, 15),
+('Tapas Neon', 'Tapas con especias asiáticas', 9.75, 30),
+('Santorini Bowl', 'Bowl fresco con queso y hierbas', 11.20, 12),
+('Ramen Aegean', 'Ramen suave con toque mediterráneo', 13.40, 9),
+('Maki Feta', 'Maki con feta, pepino y sésamo', 8.90, 25);
+
+SELECT id, name, price, stock, created_at
+FROM products
+ORDER BY id DESC;
+
+creamos el proyecto con 
+nest new backend-products
+
+e instalamos lo sigiente:
+npm install @nestjs/typeorm typeorm pg @nestjs/config
+
+creamos los modulos:
+nest g module products
+nest g controller products
+nest g service products
+
+creamos el .env
+
+PORT=3000
+
+
+DB_HOST=database-3.czzjxfomz8ht.us-east-1.rds.amazonaws.com
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASS=789456123
+
+
+DB_SSL=true
+
+creamos dentro de products: product.entity.ts
+
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+
+
+@Entity({ name: 'products' })
+export class Product {
+   @PrimaryGeneratedColumn()
+   id: number;
+
+
+   @Column({ length: 120 })
+   name: string;
+
+
+   @Column({ type: 'text', nullable: true })
+   description: string | null;
+
+
+   @Column({ type: 'numeric', precision: 10, scale: 2 })
+   price: string;
+
+
+   @Column({ type: 'int', default: 0 })
+   stock: number;
+
+
+   @CreateDateColumn({ type: 'timestamp' })
+   created_at: Date;
+}
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Product } from './product.entity';
+
+
+@Injectable()
+export class ProductsService {
+   constructor(
+       @InjectRepository(Product)
+       private readonly repo: Repository<Product>,
+   ) { }
+
+
+   findAll() {
+       return this.repo.find({
+           order: { id: 'DESC' },
+       });
+   }
+}
+
+
+import { Controller, Get } from '@nestjs/common';
+import { ProductsService } from './products.service';
+
+
+@Controller('products')
+export class ProductsController {
+   constructor(private readonly service: ProductsService) { }
+
+
+   @Get()
+   getAll() {
+       return this.service.findAll();
+   }
+}
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ProductsController } from './products.controller';
+import { ProductsService } from './products.service';
+import { Product } from './product.entity';
+
+
+
+
+@Module({
+ imports: [TypeOrmModule.forFeature([Product])],
+ controllers: [ProductsController],
+ providers: [ProductsService],
+})
+export class ProductsModule { }
+
+bamos al main.ts y añadimos el enableCors enmedio:
+
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.enableCors({
+   origin: true,
+  });
+  await app.listen(process.env.PORT ?? 3000);
+}
+bootstrap();
+
+y corremos con: npm run start:dev
+
+en aws ponemos creamos una ec2:
+
+whoami
+uname -a
+
+
+sudo yum update -y
+sudo yum install -y docker
+sudo service docker start
+sudo usermod -aG docker $(whoami)
+newgrp docker
+docker --version
+
+
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+docker-compose --version
+sudo usermod -aG docker ec2-user
+newgrp docker
+
+
+docker ps
+cat > docker-compose.yml << 'YAML'
+services:
+  test:
+    image: hello-world
+YAML
+
+
+docker-compose up
+docker-compose down
+
+debuelta en la maquina:
+
+git init
+gh auth status
+gh auth login
+git add .
+git commit -m "init bakend"
+gh repo create backend-products --private --source=. --remote=origin --push
+gh repo create mision1-japansushi --private --source=. --remote=origin --push
+history
+
+en la ec2 ponemos los sigientes comandos:
+
+whoami
+uname -a
+
+
+sudo yum update -y
+sudo yum install -y docker
+sudo service docker start
+sudo usermod -aG docker $(whoami)
+newgrp docker
+docker --version
+
+
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+docker-compose --version
+sudo usermod -aG docker ec2-user
+newgrp docker
+
+
+docker ps
+cat > docker-compose.yml << 'YAML'
+services:
+  test:
+    image: hello-world
+YAML
+
+
+docker-compose up
+docker-compose down
+
+mkdir -p ~/app
+cd ~/app
+cat > .env << 'EOF'
+PORT=3000
+DB_HOST=database-3.clcsvncnzm8o.us-east-1.rds.amazonaws.com
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASS=LUCASLUCAS
+DB_SSL=true
+EOF
+cat .env
+chmod 600 .env
+cat > docker-compose.yml << 'YAML'
+services:
+  api:
+    image: ghcr.io/albertohdezakkari/mision1-japansushi:latest
+    container_name: api-products
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+YAML
+docker login ghcr.io -u albertohdezakkari
+
+
+creamos en raiz de nuestra naquina .github/workflows
+name: Publish Docker image to GHCR
+
+on:
+    push:
+        branches: ["master"]
+
+permissions:
+    contents: read
+    packages: write
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Login GHCR
+              uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Downcase REPO
+              run: |
+                  echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+            - name: Build & Push
+              uses: docker/build-push-action@v6
+              with:
+                  file: Dockerfile
+                  context: .
+                  push: true
+                  tags: ghcr.io/${{ env.REPO }}:latest
+
+Creamos el Dockerfile en el proyecto /home/andrew/Documentos/0-10-repaso/1-prueba-devops/BACKEND/mision1-japansushi
+
+# Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+
+# Runtime
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY --from=builder /app/dist ./dist
+
+
+EXPOSE 3000
+CMD ["node", "dist/main.js"]
+
+
+y para finalizar en la EC2 ponemos los sigiente:
+
+cd ~/app
+docker-compose pull
+docker-compose up -d
+docker ps
+
+
+curl -s http://localhost:3000/products | head
+
+
+
+

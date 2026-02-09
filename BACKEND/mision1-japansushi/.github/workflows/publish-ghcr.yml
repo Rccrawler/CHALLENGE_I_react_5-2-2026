@@ -1,0 +1,35 @@
+name: Publish Docker image to GHCR
+
+on:
+    push:
+        branches: ["master"]
+
+permissions:
+    contents: read
+    packages: write
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Login GHCR
+              uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Downcase REPO
+              run: |
+                  echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+            - name: Build & Push
+              uses: docker/build-push-action@v6
+              with:
+                  file: Dockerfile
+                  context: .
+                  push: true
+                  tags: ghcr.io/${{ env.REPO }}:latest
